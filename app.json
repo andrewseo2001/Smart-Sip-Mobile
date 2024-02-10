@@ -15,16 +15,33 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "smart-sip"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.andrew_s30.smartsip"
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "68b63e1c-99f7-4f32-b231-8d1bdb2f1170"
+      }
+    },
+    "plugins": [
+      [
+      "@config-plugins/react-native-ble-plx",
+      {
+        "isBackgroundEnabled": true,
+        "modes": ["peripheral", "central"],
+        "bluetoothAlwaysPermission": "Allow $(PRODUCT_NAME) to connect to bluetooth devices"
+      }
+    ]
+  ]
   }
 }
