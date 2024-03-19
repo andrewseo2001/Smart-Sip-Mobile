@@ -5,6 +5,10 @@ import {Title} from "react-native-paper";
 import {CalendarList} from "react-native-calendars";
 import { today} from "../utilities";
 import DateData from "./DateData";
+import firebase from "firebase/app" ;
+import { app, database, auth } from '../firebase-config'; 
+import { getDatabase, ref, onValue, update } from 'firebase/database';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
 
 export default function HistoryScreen() {
 
@@ -12,17 +16,24 @@ export default function HistoryScreen() {
     const [waterObject, setWaterObject] = React.useState({});
     const [selected, setSelected] = React.useState(null);
 
-    // Currently breaks the app
     React.useEffect(() => {
-        // firebase.database().ref('users/001/').on('value', snapshot => {
-        //     const data = snapshot.val();
-        //     const prods = Object.values(data);
-        //     const markedData = prods.reduce((obj, item) => ({...obj, [item.date]: {selected: true}}) ,{});
-        //     const waterData = prods.reduce((obj, item) => ({...obj, [item.date]: item.waterAmount}) ,{});
-        //     setMarked(markedData);
-        //     setWaterObject(waterData);
-        // })
+        // Listen for changes in the /users/001/ path of your Firebase Realtime Database
+        const waterIntakeRef = ref(database, 'users/001/');
+        const unsubscribe = onValue(waterIntakeRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                const prods = Object.values(data);
+                const markedData = prods.reduce((obj, item) => ({...obj, [item.date]: {selected: true}}) ,{});
+                const waterData = prods.reduce((obj, item) => ({...obj, [item.date]: item.waterAmount}) ,{});
+                setMarked(markedData);
+                setWaterObject(waterData);
+            }
+        });
+
+        // Clean up listener on component unmount
+        return () => unsubscribe();
     }, []);
+
 
     return (
         <View style={styles.container}>

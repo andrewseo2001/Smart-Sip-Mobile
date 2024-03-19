@@ -7,6 +7,7 @@
     "build": {
       "preview": {
         "android": {
+          "distribution": "internal",
           "buildType": "apk",
           "applicationArchivePath": "android/app/build/outputs/**/*.apk"
         }

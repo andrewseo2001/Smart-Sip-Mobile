@@ -1,6 +1,10 @@
-import * as React from 'react';
+import React, { useEffect, useState } from 'react';
 import {Appbar, Divider, Menu, Portal} from 'react-native-paper';
-// import * as firebase from "firebase";
+import firebase from "firebase/app" ;
+import { app, database, auth } from '../firebase-config'; 
+import { getDatabase, ref, onValue, update } from 'firebase/database';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
+
 import {today} from "../utilities";
 import SettingsDialog from "./SettingsDialog";
 
@@ -13,11 +17,32 @@ export default function TopBar() {
     const showDialog = () => setIsDialogVisible(true);
     const hideDialog = () => setIsDialogVisible(false);
 
-    const resetWater = () => {
-        // firebase.database().ref('users/001/' + today() + '/').update(
-        //     {'waterAmount': 0, 'date': today(), 'percentage': 0}
-        // ).then(() => null);
-    }
+    const [userUid, setUserUid] = useState(null);
+
+
+        
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+            if (currentUser) {
+            setUserUid(currentUser.uid);
+            }
+        });
+
+        return () => {
+            unsubscribe();
+        };
+    }, [auth]);
+        
+    const resetWater = async () => {
+        if (userUid) {
+          const todayRef = ref(database, `users/${userUid}/${today()}`);
+          await update(todayRef, {
+            waterAmount: 0,
+            date: today(),
+            percentage: 0,
+          });
+        }
+      };
 
     return (
         <Appbar.Header>

@@ -4,6 +4,10 @@ import {Text, Surface} from "react-native-paper";
 // import * as firebase from "firebase";
 import {LineChart} from "react-native-chart-kit";
 import {splitObj, today} from "../utilities";
+import firebase from "firebase/app" ;
+import { app, database, auth } from '../firebase-config'; 
+import { getDatabase, ref, onValue, update } from 'firebase/database';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -15,18 +19,23 @@ export default function DateData(props) {
     const [chartData, setChartData] = React.useState({datasets: [{data: [0]}], labels: [today()]});
 
     React.useEffect(() => {
-        // firebase.database().ref('users/001/' + props.date + '/').on('value', snapshot => {
-        //     const data = snapshot.val();
-        //     if (data) {
-        //         const prods = Object.values(data);
-        //         setData(prods[2]);
-        //     } else {
-        //         setData(null);
-        //     }
-        // })
+        const db = getDatabase();
+        const dateRef = ref(db, 'users/001/' + props.date + '/');
+        
+        const unsubscribe = onValue(dateRef, snapshot => {
+            const data = snapshot.val();
+            if (data) {
+                const prods = Object.values(data);
+                setData(prods[2]);
+            } else {
+                setData(null);
+            }
+        });
 
-        // // Split waterData from HistoryScreen to a suitable format for line chart
-        // setChartData(splitObj(props.chartData));
+        // Assuming splitObj is a function you've created to format your data
+        setChartData(splitObj(props.chartData));
+
+        return () => unsubscribe();
     }, [props.date, props.chartData]);
 
     const chartConfig = {

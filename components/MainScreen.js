@@ -1,13 +1,21 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {View, StyleSheet, Dimensions} from "react-native";
 import {Title, Text, Button, Chip, Snackbar, Portal} from "react-native-paper";
 import {AnimatedCircularProgress} from "react-native-circular-progress";
 import ChangeTargetDialog from "./ChangeTargetDialog";
 import valuesToPercentage, {today} from "../utilities";
-// import * as firebase from "firebase";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import firebase from "firebase/app" ;
+import { app, database, auth } from '../firebase-config'; 
+import { getDatabase, ref, onValue, update } from 'firebase/database';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
+
+
+import { initializeApp } from 'firebase/app';
 import CustomWaterDialog from "./CustomWaterDialog";
 
 const screenWidth = Dimensions.get("window").width;
+
 
 export default function MainScreen() {
 
@@ -30,72 +38,105 @@ export default function MainScreen() {
     const [isTargetDialogVisible, setIsTargetDialogVisible] = React.useState(false);
     const [isCustomDialogVisible, setIsCustomDialogVisible] = React.useState(false);
 
+    const [userUid, setUserUid] = useState(null);
 
 
-    const defineTarget = (userTarget) => {
-        // firebase.database().ref('users/001/').update(
-        //     {'waterTarget': userTarget}
-        // ).then(() => null);
-        // firebase.database().ref('targets/001/').update(
-        //     {'waterTarget': userTarget}
-        // ).then(() => null);
-    }
+        
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+          if (currentUser) {
+            setUserUid(currentUser.uid);
+          }
+        });
+    
+        return () => {
+          unsubscribe();
+        };
+      }, [auth]);
 
-    const addWater = (amount) => {
-        // if (amount) {
-        //     firebase.database().ref('users/001/' + today() + '/').update(
-        //         {
-        //             'waterAmount': water + amount,
-        //             'date': today(),
-        //             'percentage': valuesToPercentage(target, water + amount)
-        //         }
-        //     ).then(() => null);
-        //     onToggleSnackBar();
-        // }
-        // if (valuesToPercentage(target, water + amount) >= 100) setTargetReach(true);
-    }
+    useEffect(() => {
+    if (userUid) {
+        // Setup listeners for user's target and water data
+        const userTargetRef = ref(database, `users/${userUid}/target`);
+        const userWaterRef = ref(database, `users/${userUid}/${today()}`);
 
-    const resetWater = () => {
-        // firebase.database().ref('users/001/' + today() + '/').update(
-        //     {'waterAmount': 0, 'date': today(), 'percentage': 0}
-        // ).then(() => null);
-        // setPercentage(0);
-    }
+        onValue(userTargetRef, (snapshot) => {
+        const targetValue = snapshot.val();
+        if (targetValue) setTarget(targetValue);
+        });
 
-    React.useEffect(() => {
-        // firebase.database().ref('targets/001/').on('value', snapshot => {
-        //     const data = snapshot.val();
-        //     const prods = Object.values(data);
-        //     setTarget(prods[0]);
-        // })
-        // firebase.database().ref('containers/001/').on('value', snapshot => {
-        //     const data = snapshot.val();
-        //     const prods = Object.values(data);
-        //     setWaterBottle(prods[0]);
-        //     setWaterCup(prods[1]);
-        // })
-        // firebase.database().ref('users/001/' + today() + '/').on('value', snapshot => {
-        //     const data = snapshot.val();
-        //     if (data) {
-        //         const prods = Object.values(data);
-        //         setWater(prods[2]);
-        //         setPercentage(prods[1]);
-        //         if (prods[2]<100) {
-        //             setTargetReach(false);
-        //         }
-        //     } else {
-        //         addWater(0);
-        //     }
-        // })
-    }, []);
-
-    React.useEffect(() => {
-        console.log("target state change " + targetReach);
-        if (targetReach===true) {
-            onToggleTargetSnackBar();
-            console.log("Target reached!")
+        onValue(userWaterRef, (snapshot) => {
+        const waterData = snapshot.val();
+        if (waterData) {
+            setWater(waterData.waterAmount);
+            setPercentage(valuesToPercentage(target, waterData.waterAmount));
         }
-    }, [targetReach])
+        });
+    }
+    }, [database, userUid, target]);
+    
+
+
+    const defineTarget = async (userTarget) => {
+        if (userUid) {
+          const targetRef = ref(database, `users/${userUid}`);
+          // Construct an object with the target as a child
+          const updateData = { target: userTarget };
+          await update(targetRef, updateData);
+          setTarget(userTarget);
+          console.log("set target");
+        } else {
+          Alert.alert("User not identified", "Cannot set target without user identification.");
+        }
+    };
+    
+    
+    
+      const addWater = async (amount) => {
+        if (userUid && amount) {
+          const todayRef = ref(database, `users/${userUid}/${today()}`);
+          const newWaterAmount = water + amount;
+          const newPercentage = valuesToPercentage(target, newWaterAmount);
+    
+          await update(todayRef, {
+            waterAmount: newWaterAmount,
+            date: today(),
+            percentage: newPercentage,
+          });
+    
+          setWater(newWaterAmount); 
+          setPercentage(newPercentage);
+          onToggleSnackBar();
+          
+              // Check if the new water amount exceeds the target
+        if (newWaterAmount >= target) {
+        setTargetReach(true);
+         }
+        }
+      };
+    
+      const resetWater = async () => {
+        if (userUid) {
+          const todayRef = ref(database, `users/${userUid}/${today()}`);
+          await update(todayRef, {
+            waterAmount: 0,
+            date: today(),
+            percentage: 0,
+          });
+    
+          setWater(0);
+          setPercentage(0);
+          onDismissSnackBar();
+        }
+      };
+    
+    useEffect(() => {
+        console.log("target state change " + targetReach);
+        if (targetReach === true) {
+            onToggleTargetSnackBar();
+            console.log("Target reached!");
+        }
+    }, [targetReach]); // Depend on targetReach to run this effect
 
     return (
         <View style={styles.container}>
@@ -104,10 +145,19 @@ export default function MainScreen() {
                 mode='outlined'
                 icon='information'
                 selectedColor='#2176FF'
-                style={{marginTop: 10}}
+                style={{
+                    marginTop: 10,
+                    width: '90%', // Adjust width to 90% of the container width
+                    alignSelf: 'center', // Center the chip in the parent container
+                    justifyContent: 'space-between', // Spread icon and text
+                }}
+                textStyle={{
+                    fontSize: 16, // Adjust text size as needed
+                }}
                 onPress={() => setIsTargetDialogVisible(true)}>
                 Water target: {target} ml
             </Chip>
+            
             <View style={styles.content}>
                 <AnimatedCircularProgress
                     style={styles.progress}

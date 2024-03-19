@@ -1,7 +1,11 @@
 import {DateTime} from "luxon";
 
 export default function valuesToPercentage(target, current) {
-
+    console.log(target);
+    console.log(current);
+    if (target === 0) {
+        return 0; // or some other appropriate value for your application
+    }
     return Math.floor(100 * (current / target));
 }
 

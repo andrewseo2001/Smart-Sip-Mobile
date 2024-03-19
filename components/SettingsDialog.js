@@ -1,6 +1,10 @@
 import * as React from 'react';
 import {Button, Dialog, Portal, Provider, Text, TextInput} from "react-native-paper";
-// import * as firebase from "firebase";
+import firebase from "firebase/app" ;
+import { app, database } from '../firebase-config'; 
+import { getDatabase, ref, onValue, update } from 'firebase/database';
+
+const db = getDatabase();
 
 export default function SettingsDialog(props) {
 
@@ -10,30 +14,38 @@ export default function SettingsDialog(props) {
     const[oldCupVolume, setOldCupVolume] = React.useState(0);
 
 
-    function updateWaterCup(volume) {
-        // firebase.database().ref('containers/001/').update(
-        //     {
-        //         'waterCup': volume,
-        //     }
-        // ).then(() => null);
+  function updateWaterCup(volume) {
+        update(ref(db, 'containers/001/'), {
+            waterCup: volume,
+        }).then(() => {
+            console.log('Cup volume updated');
+        }).catch((error) => {
+            console.error('Error updating cup volume:', error);
+        });
     }
 
     function updateWaterBottle(volume) {
-        // firebase.database().ref('containers/001/').update(
-        //     {
-        //         'waterBottle': volume,
-        //     }
-        // ).then(() => null);
+        update(ref(db, 'containers/001/'), {
+            waterBottle: volume,
+        }).then(() => {
+            console.log('Bottle volume updated');
+        }).catch((error) => {
+            console.error('Error updating bottle volume:', error);
+        });
     }
 
     React.useEffect(() => {
-        // firebase.database().ref('containers/001/').on('value', snapshot => {
-        //     const data = snapshot.val();
-        //     const prods = Object.values(data);
-        //     setOldBottleVolume(prods[0]);
-        //     setOldCupVolume(prods[1]);
-        // })
-    })
+        const containerRef = ref(db, 'containers/001/');
+        const unsubscribe = onValue(containerRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                setOldBottleVolume(data.waterBottle || 0);
+                setOldCupVolume(data.waterCup || 0);
+            }
+        });
+        return () => unsubscribe();
+    }, []);
+
 
     return (
         <Provider>
@@ -47,10 +59,10 @@ export default function SettingsDialog(props) {
                             to match your own to make adding water quick and easy.</Text>
 
                         <Text>{`
-Current volumes:
+                            Current volumes:
 
-Water cup: ${oldCupVolume} ml
-Water bottle: ${oldBottleVolume} ml`
+                            Water cup: ${oldCupVolume} ml
+                            Water bottle: ${oldBottleVolume} ml`
                         }</Text>
 
                         <TextInput
@@ -88,5 +100,6 @@ Water bottle: ${oldBottleVolume} ml`
                 </Dialog>
             </Portal>
         </Provider>
-    )
-}
+    );
+};
+                        

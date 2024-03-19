@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "533174878789",
+    "project_id": "smart-sip-mobile",
+    "storage_bucket": "smart-sip-mobile.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:533174878789:android:e7781fe1cd5bafed4b992c",
+        "android_client_info": {
+          "package_name": "com.andrew_s30.smartsip"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAaK0IbnvHntx2aGR4odMYomBVHtUEjW-U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
